@@ -1,0 +1,75 @@
+---
+title: "Example from class, applied to homework problem (part 2)"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+---
+
+This pertains to part 2, but is based on the example from yesterday.
+I am trying to run this in RStudio console:
+- source('~/nagalakshmi_count_table.R', "do you see me")
+
+My first question is, how do you pass arguments to r script from console command line, or
+should I be doing this a different way?
+
+```{r}
+### 
+paste(commandArgs())
+
+### Extract and Normalize Data
+
+## Extract data
+
+# get and look at counts raw data
+nagalakshmi_counts <- read.table("~/nagalakshmi_count_table.txt", header=T)
+
+View(nagalakshmi_counts)
+
+# make genes column row names instead
+rownames(nagalakshmi_counts) <- nagalakshmi_counts$gene
+nagalakshmi_counts <- nagalakshmi_counts[, -1]
+
+
+## Normalize data
+
+# define normalize_counts function
+# counts is treated as a metaparameter
+
+normalize_counts <- function(counts, methodToApply, removeZeros=T) {
+  
+  # Get rid of rows whose columns sum to zero by default. Note that
+  # p-values shouldn't change, but fdr will if you remove zeros.
+  # Removing zeros is recommended primarily for runtime purposes.
+  if (removeZeros) {
+    counts$sum <- apply(counts, MARGIN = 1, FUN = sum)
+    counts <- counts[counts$sum != 0,]
+    counts <- counts[, -5]
+  }
+  
+  # loop through columns and apply normalization method to each row
+  applytocounts <- sapply(counts, methodToApply)
+  normalized_counts <- counts
+  for (i in 1:dim(counts)[2]) {
+    normalized_counts[,i] <- counts[,i] / applytocounts[i]
+  }
+  
+  # plot and return normalized_counts variable
+  boxplot(normalized_counts, outline = F)
+  normalized_counts
+}
+
+
+## Examples with two different methods (median and upper quartile)
+## Note that in both examples, method is defined to remove zeros
+## for calculating normalization, regardless of whether the zero
+## rows are left in place or removed from the output data.
+
+# median normalization - not a good method
+median_nonzeros = function(x) {median(x[x != 0])}
+normalize_counts(nagalakshmi_counts, median_nonzeros)
+
+# upper quartile normalization - better
+upper_quartile_nonzeros = function(x) {quantile(x[x != 0], .75)}
+normalize_counts(nagalakshmi_counts, upper_quartile_nonzeros)
+```
